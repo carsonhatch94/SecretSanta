@@ -93,12 +93,42 @@ class Program
         }
 
         var emailBody = new StringBuilder();
-        emailBody.AppendLine("Secret Santa Assignments:");
-        emailBody.AppendLine("");
+        emailBody.AppendLine("<html><body>");
+        emailBody.AppendLine("<h2 style='color: #d32f2f; font-family: Arial, sans-serif;'>Secret Santa Assignments:</h2>");
+        emailBody.AppendLine("<br>");
+
         foreach (var assignment in assignments)
         {
-            emailBody.AppendLine($"{assignment.Giver} is Secret Santa for {assignment.Receiver}");
+            emailBody.AppendLine($"<p style='font-family: Arial, sans-serif; font-size: 16px;'>" +
+                               $"<span style='color: red; font-weight: bold;'>{assignment.Giver}</span> " +
+                               $"<span style='color: black;'>is Secret Santa for</span> " +
+                               $"<span style='color: green; font-weight: bold;'>{assignment.Receiver}</span>" +
+                               $"</p>");
         }
+
+        emailBody.AppendLine("<br>");
+        emailBody.AppendLine("<p style='font-family: Arial, sans-serif; font-size: 14px; text-align: center;'>" +
+                           "<span style='color: red; font-weight: bold;'>M</span>" +
+                           "<span style='color: green; font-weight: bold;'>e</span>" +
+                           "<span style='color: red; font-weight: bold;'>r</span>" +
+                           "<span style='color: green; font-weight: bold;'>r</span>" +
+                           "<span style='color: red; font-weight: bold;'>y</span>" +
+                           "<span style='color: black;'> </span>" +
+                           "<span style='color: green; font-weight: bold;'>C</span>" +
+                           "<span style='color: red; font-weight: bold;'>h</span>" +
+                           "<span style='color: green; font-weight: bold;'>r</span>" +
+                           "<span style='color: red; font-weight: bold;'>i</span>" +
+                           "<span style='color: green; font-weight: bold;'>s</span>" +
+                           "<span style='color: red; font-weight: bold;'>t</span>" +
+                           "<span style='color: green; font-weight: bold;'>m</span>" +
+                           "<span style='color: red; font-weight: bold;'>a</span>" +
+                           "<span style='color: green; font-weight: bold;'>s</span>" +
+                           "<span style='color: red; font-weight: bold;'>!</span>" +
+                           "<span style='color: black;'> Have fun and don't forget the </span>" +
+                           "<a href='https://www.churchofjesuschrist.org/welcome/christmas?lang=eng' style='color: #1976d2; text-decoration: underline;'>reason for the season</a>" +
+                           "</p>");
+
+        emailBody.AppendLine("</body></html>");
 
         using var client = new SmtpClient(smtpHost, smtpPort);
         client.EnableSsl = true;
@@ -109,7 +139,7 @@ class Program
             From = new MailAddress(smtpUser),
             Subject = "Secret Santa Assignments",
             Body = emailBody.ToString(),
-            IsBodyHtml = false
+            IsBodyHtml = true
         };
 
         message.To.Add(recipientEmail);
