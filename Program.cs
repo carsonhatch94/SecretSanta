@@ -1,27 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using DotNetEnv;
+﻿using DotNetEnv;
+using System.Net;
+using System.Net.Mail;
+using System.Text;
 
 class Program
 {
-    static void Main(string[] args)
+    static async Task Main(string[] args)
     {
         Env.Load();
         var couples = LoadCouplesFromEnv();
-
-        // Create list of all participants
         var participants = couples.SelectMany(c => new[] { c.Person, c.Partner }).ToList();
-
-        // Shuffle and assign Secret Santa
         var assignments = AssignSecretSanta(participants, couples);
-
-        // Display results
-        Console.WriteLine("Secret Santa Assignments:");
-        foreach (var assignment in assignments)
-        {
-            Console.WriteLine($"{assignment.Giver} is Secret Santa for {assignment.Receiver}");
-        }
+        await SendAssignmentEmail(assignments);
     }
 
     static List<(string Person, string Partner)> LoadCouplesFromEnv()
@@ -86,5 +76,45 @@ class Program
             KeyValuePair.Create(c.Person, c.Partner),
             KeyValuePair.Create(c.Partner, c.Person)
         }).ToDictionary();
+    }
+
+    static async Task SendAssignmentEmail(List<(string Giver, string Receiver)> assignments)
+    {
+        var smtpHost = Environment.GetEnvironmentVariable("SMTP_HOST");
+        var smtpPort = int.Parse(Environment.GetEnvironmentVariable("SMTP_PORT") ?? "587");
+        var smtpUser = Environment.GetEnvironmentVariable("SMTP_USER");
+        var smtpPassword = Environment.GetEnvironmentVariable("SMTP_PASSWORD");
+        var recipientEmail = Environment.GetEnvironmentVariable("RECIPIENT_EMAIL");
+
+        if (string.IsNullOrEmpty(smtpHost) || string.IsNullOrEmpty(smtpUser) ||
+            string.IsNullOrEmpty(smtpPassword) || string.IsNullOrEmpty(recipientEmail))
+        {
+            throw new InvalidOperationException("Email configuration missing. Please set SMTP_HOST, SMTP_USER, SMTP_PASSWORD, and RECIPIENT_EMAIL in .env file");
+        }
+
+        var emailBody = new StringBuilder();
+        emailBody.AppendLine("Secret Santa Assignments:");
+        emailBody.AppendLine("");
+        foreach (var assignment in assignments)
+        {
+            emailBody.AppendLine($"{assignment.Giver} is Secret Santa for {assignment.Receiver}");
+        }
+
+        using var client = new SmtpClient(smtpHost, smtpPort);
+        client.EnableSsl = true;
+        client.Credentials = new NetworkCredential(smtpUser, smtpPassword);
+
+        var message = new MailMessage
+        {
+            From = new MailAddress(smtpUser),
+            Subject = "Secret Santa Assignments",
+            Body = emailBody.ToString(),
+            IsBodyHtml = false
+        };
+
+        message.To.Add(recipientEmail);
+
+        await client.SendMailAsync(message);
+        Console.WriteLine($"Secret Santa assignments sent to {recipientEmail}");
     }
 }
